@@ -1,14 +1,31 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, FlatList } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { styles } from './styles';
 
 const Stack = createStackNavigator();
 
 function HabitListScreen() {
+    const [habits] = useState([
+        { id: '1', title: 'Пить воду', completed: false },
+        { id: '2', title: 'Дышать воздухом', completed: true },
+        { id: '3', title: 'Смотреть глазами', completed: false },
+        { id: '4', title: 'Есть ртом', completed: true },
+    ]);
+
     return (
         <View style={styles.screen}>
-            <Text>Список привычек</Text>
+            <FlatList
+                data={habits}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <View style={styles.habitItem}>
+                        <Text style={styles.habitText}>{item.title}</Text>
+                        <Text>{item.completed ? 'Yes' : 'No'}</Text>
+                    </View>
+                )}
+            />
         </View>
     );
 }
@@ -39,7 +56,3 @@ export default function App() {
         </NavigationContainer>
     );
 }
-
-const styles = StyleSheet.create({
-    screen: { flex: 1, padding: 20, backgroundColor: '#fff' },
-});
