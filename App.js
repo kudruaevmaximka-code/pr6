@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,24 +14,41 @@ import { styles } from './styles';
 
 const Stack = createStackNavigator();
 
-function HabitListScreen({ navigation }) {
-    const [habits] = useState([
+function HabitListScreen({ navigation, route }) {
+    const [habits, setHabits] = useState([
         { id: '1', title: 'Пить воду', completed: false },
         { id: '2', title: 'Дышать воздухом', completed: true },
         { id: '3', title: 'Смотреть глазами', completed: false },
         { id: '4', title: 'Есть ртом', completed: true },
     ]);
 
+    useEffect(() => {
+        if (route.params?.newHabit) {
+            setHabits((prev) => [...prev, route.params.newHabit]);
+            navigation.setParams({ newHabit: null });
+        }
+    }, [route.params?.newHabit, navigation]);
+
+    const toggleHabit = (id) => {
+        setHabits((prev) =>
+            prev.map((h) => (h.id === id ? { ...h, completed: !h.completed } : h))
+        );
+    };
+
     return (
         <View style={styles.screen}>
             <FlatList
                 data={habits}
                 keyExtractor={(item) => item.id}
+                ListEmptyComponent={<Text style={styles.empty}>Привычек пока нет</Text>}
                 renderItem={({ item }) => (
-                    <View style={styles.habitItem}>
+                    <TouchableOpacity
+                        style={styles.habitItem}
+                        onPress={() => toggleHabit(item.id)}
+                    >
                         <Text style={styles.habitText}>{item.title}</Text>
-                        <Text>{item.completed ? 'Y' : 'N'}</Text>
-                    </View>
+                        <Text>{item.completed ? 'y' : 'n'}</Text>
+                    </TouchableOpacity>
                 )}
             />
             <TouchableOpacity
@@ -52,7 +69,12 @@ function AddHabitScreen({ navigation }) {
             Alert.alert('Ошибка', 'Введите название привычки');
             return;
         }
-        navigation.goBack();
+        const newHabit = {
+            id: Date.now().toString(),
+            title: title.trim(),
+            completed: false,
+        };
+        navigation.navigate('HabitList', { newHabit });
     };
 
     return (
