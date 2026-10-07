@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -14,20 +15,43 @@ import { styles } from './styles';
 
 const Stack = createStackNavigator();
 
-function HabitListScreen({ navigation, route }) {
-    const [habits, setHabits] = useState([
-        { id: '1', title: 'Пить воду', completed: false },
-        { id: '2', title: 'Дышать воздухом', completed: true },
-        { id: '3', title: 'Смотреть глазами', completed: false },
-        { id: '4', title: 'Есть ртом', completed: true },
-    ]);
+const STORAGE_KEY = '@habits';
+
+const DEFAULT_HABITS = [
+    { id: '1', title: 'Пить воду', completed: false },
+    { id: '2', title: 'Дышать воздухом', completed: false },
+    { id: '3', title: 'Смотреть глазами', completed: false },
+    { id: '4', title: 'Есть ртом', completed: false },
+];
+
+function HabitListScreen({ navigation }) {
+    const [habits, setHabits] = useState(DEFAULT_HABITS);
+    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        if (route.params?.newHabit) {
-            setHabits((prev) => [...prev, route.params.newHabit]);
-            navigation.setParams({ newHabit: null });
-        }
-    }, [route.params?.newHabit, navigation]);
+        const load = async () => {
+            try {
+                const saved = await AsyncStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    setHabits(JSON.parse(saved));
+                }
+            } catch (e) {
+                Alert.alert('Ошибка', 'Не удалось загрузить привычки');
+            } finally {
+                setLoaded(true);
+            }
+        };
+        load();
+    }, []);
+
+    useEffect(() => {
+        if (!loaded) return;
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
+    }, [habits, loaded]);
+
+    const addHabit = (newHabit) => {
+        setHabits((prev) => [...prev, newHabit]);
+    };
 
     const toggleHabit = (id) => {
         setHabits((prev) =>
@@ -53,7 +77,7 @@ function HabitListScreen({ navigation, route }) {
             />
             <TouchableOpacity
                 style={styles.addBtn}
-                onPress={() => navigation.navigate('AddHabit')}
+                onPress={() => navigation.navigate('AddHabit', { onSave: addHabit })}
             >
                 <Text style={styles.addBtnText}>+ Добавить привычку</Text>
             </TouchableOpacity>
@@ -61,7 +85,7 @@ function HabitListScreen({ navigation, route }) {
     );
 }
 
-function AddHabitScreen({ navigation }) {
+function AddHabitScreen({ navigation, route }) {
     const [title, setTitle] = useState('');
 
     const handleSave = () => {
@@ -74,7 +98,10 @@ function AddHabitScreen({ navigation }) {
             title: title.trim(),
             completed: false,
         };
-        navigation.navigate('HabitList', { newHabit });
+        if (route.params?.onSave) {
+            route.params.onSave(newHabit);
+        }
+        navigation.goBack();
     };
 
     return (
